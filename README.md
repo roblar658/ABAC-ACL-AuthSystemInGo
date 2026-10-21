@@ -2,6 +2,9 @@
 
 Et komplett tilgangskontrollsystem (ACL) skrevet i Go, basert på **64-bit heltall og bitmasking**.
 
+<img width="1820" height="947" alt="image" src="https://github.com/user-attachments/assets/30548ff2-feed-4a96-a56c-7c1c034d3b85" />
+
+
 > **Merk om HTML-grensesnittet:**  
 > Webgrensesnittet på **http://localhost:8080** er bevisst bygget helt minimalistisk og rent. HTML-koden viser **KUN innloggingsskjema + knapper og 1 dropdown-meny for kontekst-simulering**. Det er ingen ekstra faner, ingen symboler og ingen unødvendig kompleksitet.
 
