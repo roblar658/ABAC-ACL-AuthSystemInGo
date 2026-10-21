@@ -1,0 +1,11 @@
+*.exe
+*.dll
+*.so
+*.dylib
+.git
+.gitignore
+.vscode
+.idea
+Dockerfile
+docker-compose.yml
+README.md

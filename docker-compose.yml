@@ -1,0 +1,17 @@
+services:
+  acl-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acl-bitmask-service
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      - PORT=8080
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/api/v1/groups || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 2s

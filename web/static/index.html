@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACL Innlogging og Kontekst</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="main-wrapper">
+    <div class="card">
+      <h2>ACL Innlogging</h2>
+
+      <!-- Login Form -->
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="field">
+          <label for="username">Brukernavn</label>
+          <input type="text" id="username" placeholder="Skriv inn brukernavn" required autocomplete="username">
+        </div>
+
+        <div class="field">
+          <label for="password">Passord</label>
+          <input type="password" id="password" placeholder="Skriv inn passord" required autocomplete="current-password">
+        </div>
+
+        <!-- 1 Dropdown Menu for Context Simulation -->
+        <div class="field">
+          <label for="context-select">Kontekst-simulering</label>
+          <select id="context-select" onchange="onContextChange()">
+            <option value="PLANT_DAY_2FA" selected>Fabrikk - Dagskift (Arbeidstid, Lokalt nettverk, 2FA) [0x0B]</option>
+            <option value="PLANT_NIGHT">Fabrikk - Nattskift (Nattskift, Lokalt nettverk) [0x12]</option>
+            <option value="HQ_DAY">Hovedkontor - Dagskift (Oslo LAN) [0x03]</option>
+            <option value="VPN_DAY_2FA">Hjemmekontor / VPN - Arbeidstid (Kryptert tunnel, 2FA) [0x0D]</option>
+            <option value="MAINTENANCE">Vedlikeholdsvindu (Planlagt driftsstans) [0x20]</option>
+            <option value="WEEKEND">Helg / Helligdag (Stengt anlegg) [0x40]</option>
+            <option value="UNTRUSTED">Eksternt nettverk - Utenfor arbeidstid (Ukjent IP) [0x00]</option>
+          </select>
+        </div>
+
+        <!-- Knapper -->
+        <div class="button-group">
+          <button type="submit" class="btn btn-primary" id="btn-submit">Logg inn</button>
+          <button type="button" class="btn btn-secondary" id="btn-logout" onclick="handleLogout()" style="display: none;">Logg ut</button>
+          <button type="button" class="btn btn-action" id="btn-check" onclick="checkAccess()">Sjekk tilgang</button>
+        </div>
+
+        <!-- Hurtigvalg-knapper for innlogging -->
+        <div class="quick-buttons">
+          <span>Hurtigvalg:</span>
+          <button type="button" class="btn-chip" onclick="quickFill('admin', 'admin123')">admin</button>
+          <button type="button" class="btn-chip" onclick="quickFill('operator', 'operator123')">operator</button>
+          <button type="button" class="btn-chip" onclick="quickFill('engineer', 'engineer123')">engineer</button>
+          <button type="button" class="btn-chip" onclick="quickFill('guest', 'guest123')">guest</button>
+        </div>
+      </form>
+
+      <!-- Status og Evalueringsresultat -->
+      <div id="result-box" class="result-box" style="display: none;">
+        <div class="result-title" id="status-title">Status</div>
+        <div class="result-content" id="status-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
