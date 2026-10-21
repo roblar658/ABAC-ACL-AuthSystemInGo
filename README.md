@@ -1,12 +1,42 @@
-# 64-bit ACL Bitmask Engine & Kontroll-Dashboard (Go Server)
+# 64-bit ACL Bitmask Engine (Go Server)
 
-Et komplett, produksjonsklart tilgangskontrollsystem (ACL) skrevet i Go, basert på **64-bit heltall og bitmasking**. Inkluderer et moderne kontrollpanel for brukere og prosesser, innloggingssystem, kontekst-simulator for falsk lokasjon og tid, samt full Docker-støtte.
+Et komplett tilgangskontrollsystem (ACL) skrevet i Go, basert på **64-bit heltall og bitmasking**.
+
+> **Merk om HTML-grensesnittet:**  
+> Webgrensesnittet på **http://localhost:8080** er bevisst bygget helt minimalistisk og rent. HTML-koden viser **KUN innloggingsskjema + knapper og 1 dropdown-meny for kontekst-simulering**. Det er ingen ekstra faner, ingen symboler og ingen unødvendig kompleksitet.
+
+---
+
+## 🖥️ Webgrensesnitt (Kun Login + Knapper + 1 Dropdown)
+
+HTML-siden viser utelukkende følgende elementer:
+
+1. **Innloggingsskjema:**
+   - Tekstfelt for **Brukernavn**
+   - Tekstfelt for **Passord**
+
+2. **Knapper:**
+   - **Logg inn** (endres til **Logg ut** når bruker er autentisert)
+   - **Sjekk tilgang**
+   - Hurtigvalg-knapper: `admin`, `operator`, `engineer`, `guest`
+
+3. **1 Dropdown-meny (for kontekst-simulering):**
+   - *Fabrikk - Dagskift (08:00 - 16:00, 192.168.1.x, 2FA) [Maske: 0x0B]*
+   - *Fabrikk - Nattskift (22:00 - 06:00) [Maske: 0x12]*
+   - *Hovedkontor - Dagskift (Oslo LAN) [Maske: 0x03]*
+   - *Hjemmekontor / VPN - Arbeidstid (Kryptert tunnel, 2FA) [Maske: 0x0D]*
+   - *Vedlikeholdsvindu (Planlagt driftsstans) [Maske: 0x20]*
+   - *Helg / Helligdag (Stengt fabrikk) [Maske: 0x40]*
+   - *Eksternt nettverk - Utenfor arbeidstid (Ukjent IP) [Maske: 0x00]*
+
+4. **Resultatboks:**
+   - Viser aktiv innlogget bruker, gjeldende kontekstmaske ($C$), og om tilgang evaluerer til **`Tillatt (true)`** eller **`Avslått (false)`**.
 
 ---
 
 ## 🐳 Kjøring med Docker
 
-Serveren er klargjort for Docker med en multi-stage build (bygger med `golang:1.24-alpine` og kjører i minimal `alpine:3.21` med ikke-root bruker).
+Serveren er klargjort for Docker med en multi-stage build (bygger med `golang:1.24-alpine` og kjører i minimal `alpine:3.21`).
 
 ### Start med Docker Compose (Anbefalt)
 ```bash
@@ -14,7 +44,7 @@ cd c:\dev\go-acl-bitmask
 docker compose up --build -d
 ```
 
-### Eller bygg og kjør direkte med Docker
+### Start direkte med Docker
 ```bash
 docker build -t acl-bitmask-service .
 docker run -d -p 8080:8080 --name acl-service acl-bitmask-service
@@ -31,11 +61,7 @@ Dashboardet er tilgjengelig på: **http://localhost:8080**
 
 ---
 
-## 👤 Brukere, Prosesser og Innloggingssystem
-
-Kontrollpanelet har en standard nedtrekksmeny (dropdown) for å veksle mellom menneskelige brukere og automatiserte bakgrunnsprosesser.
-
-### Forhåndskonfigurerte Kontoer og Passord
+## 👤 Forhåndsdefinerte Brukere og Passord
 
 | Brukernavn | Passord | Type | Subject ID (`xx`) | Rolle & Beskrivelse |
 |---|---|---|---|---|
@@ -46,18 +72,12 @@ Kontrollpanelet har en standard nedtrekksmeny (dropdown) for å veksle mellom me
 | **`proc-scada-poller`** | *(token)* | PROCESS | `2` (10) | **daemon://scada-telemetry-poller:** Høyfrekvent polling av sensorer på internt nett. |
 | **`proc-backup-worker`** | *(token)* | PROCESS | `1` (01) | **cron://database-backup-worker:** Nattlig arkiveringsjobb i vedlikeholdsvinduet. |
 
-Innlogging skjer via modalen i webgrensesnittet eller via API:
-```bash
-curl -X POST http://localhost:8080/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "operator", "password": "operator123"}'
-```
-
 ---
 
-## 🌍 Falsk Kontekst-informasjon (Lokasjon & Tid Simulator)
+## 🌍 Falsk Kontekst-informasjon (Lokasjon & Tid)
 
-Tilgangskontroll krever ofte at miljøbetingelser er oppfylt. Systemet har en innebygd **Context Simulator** i dashboardet hvor du kan overstyre og simulere falsk lokasjon og tid:
+Tilgangskontroll krever at kontekstgruppen $C_i$ er oppfylt for at gruppe $G_i$ skal gi rettigheter (`activeContext & Ci == Ci`). 
+Gjennom den **enkle dropdown-menyen** i grensesnittet kan du simulere falsk kontekst for å teste om ACL-reglene godkjenner eller avviser tilgang:
 
 ```
 Kontekstbyte C (8 bit):
@@ -70,19 +90,6 @@ Bit 5 (0x20): Vedlikeholdsvindu (Off-peak)
 Bit 6 (0x40): Helg / Helligdag
 Bit 7 (0x80): Godkjent Bedrifts-enhet
 ```
-
-### Simulering av falske parametere via API:
-```bash
-curl -X POST http://localhost:8080/api/v1/context/simulate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "location": "UNTRUSTED_EXTERNAL",
-    "time": "NIGHT_SHIFT",
-    "two_factor_auth": false,
-    "managed_device": false
-  }'
-```
-Når lokasjonen settes til `UNTRUSTED_EXTERNAL` eller `NIGHT_SHIFT`, vil tilgangskontrollen umiddelbart nekte operatør- og ingeniørhandlinger fordi kontekstkravet $C_i$ ikke lenger er tilfredsstilt!
 
 ---
 
@@ -122,7 +129,7 @@ Byte 6: G4 (Gruppe 4)      Byte 7: C4 (Kontekstgruppe 4)
 
 ---
 
-## 📡 REST API Dokumentasjon
+## 📡 REST API Eksempler
 
 ### 1. Enkelt Tilgangssjekk (Returnerer true eller false)
 ```bash
@@ -151,17 +158,12 @@ curl -X POST "http://localhost:8080/api/v1/check?group=1&subject=1&object=1&righ
 ]
 ```
 
-### 3. Full Rettighetsmatrise for Bruker/Prosess
-```bash
-curl "http://localhost:8080/api/v1/profiles/eval-matrix?id=operator"
-```
-
-### 4. Dekode 64-bit ACL
+### 3. Dekode 64-bit ACL
 ```bash
 curl "http://localhost:8080/api/v1/decode?acl=0x5321B16574710000"
 ```
 
-### 5. Enkode / Bygge 64-bit ACL
+### 4. Enkode / Bygge 64-bit ACL
 ```bash
 curl -X POST http://localhost:8080/api/v1/encode \
   -H "Content-Type: application/json" \
@@ -172,23 +174,3 @@ curl -X POST http://localhost:8080/api/v1/encode \
     ]
   }'
 ```
-
----
-
-## 🖥️ Webgrensesnitt
-
-Nettsiden på **http://localhost:8080** er minimalistisk og fokusert:
-1. **Innloggingsskjema:** Standard felter for **Brukernavn** og **Passord**.
-2. **Knapper:**
-   - **Logg inn** og **Logg ut**
-   - **Sjekk tilgang**
-   - Hurtigvalg-knapper (`admin`, `operator`, `engineer`, `guest`)
-3. **1 Dropdown-meny for kontekst-simulering:**
-   - *Fabrikk - Dagskift (08:00 - 16:00, 192.168.1.x, 2FA) [0x0B]*
-   - *Fabrikk - Nattskift (22:00 - 06:00) [0x12]*
-   - *Hovedkontor - Dagskift (Oslo LAN) [0x03]*
-   - *Hjemmekontor / VPN (Kryptert tunnel, 2FA) [0x0D]*
-   - *Vedlikeholdsvindu (Off-peak) [0x20]*
-   - *Helg / Helligdag [0x40]*
-   - *Eksternt nettverk - Utenfor arbeidstid (Ukjent IP) [0x00]*
-4. **Resultatboks:** Viser umiddelbart om innloggingen er gyldig, aktiv kontekst ($C$) og om tilgang er innvilget (`Tillatt (true)`) eller avslått (`Avslått (false)`).
